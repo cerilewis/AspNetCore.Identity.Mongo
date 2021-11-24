@@ -47,6 +47,8 @@ namespace AspNetCore.Identity.Mongo.Migrations
                             Builders<TUser>.Update.Set(x => x.Tokens, tokens)
                             .Set(x => x.AuthenticatorKey, null));
                     }
+
+                    lastHistory.DatabaseVersion = 5;
                 }
 
                 // 5 -> 6
@@ -55,6 +57,7 @@ namespace AspNetCore.Identity.Mongo.Migrations
                     usersCollection.UpdateMany(x => true,
                         Builders<TUser>.Update.Unset(x => x.AuthenticatorKey)
                         .Unset(x => x.RecoveryCodes));
+                    lastHistory.DatabaseVersion = 6;
                 }
             }
 
