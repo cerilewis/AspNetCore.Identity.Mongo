@@ -31,7 +31,7 @@ namespace AspNetCore.Identity.Mongo.Mongo
                 settings.ClusterConfigurator = options.ClusterConfigurator;
 
                 var client = new MongoClient(settings);
-                collection = client.GetDatabase(url.DatabaseName ?? "default")
+                collection = client.GetDatabase(options.DatabaseName ?? url.DatabaseName ?? "default")
                     .GetCollection<TItem>(collectionName ?? type.Name.ToLowerInvariant());
             }
             else

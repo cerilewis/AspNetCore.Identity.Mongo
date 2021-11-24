@@ -14,6 +14,8 @@ namespace AspNetCore.Identity.Mongo
 
         public string MigrationCollection { get; set; } = "_Migrations";
 
+        public string DatabaseName { get; set; }
+
         public SslSettings SslSettings { get; set; }
 
         public Action<ClusterBuilder> ClusterConfigurator { get; set; }
