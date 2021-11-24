@@ -10,7 +10,7 @@
 		<Copyright>Matteo Fabbri 2018</Copyright>
 		<RepositoryUrl>https://github.com/matteofabbri/AspNetCore.Identity.Mongo</RepositoryUrl>
 		<PackageTags>asp core identity mongo framework aspnetcore mongodb dotnetcore netcore</PackageTags>
-		<PackageId>AspNetCore.Identity.Mongo</PackageId>
+		<PackageId>Axpo.AspNetCore.Identity.Mongo</PackageId>
 		<Authors>Matteo Fabbri</Authors>
 		<Company />
 		<Product>AspNetCore.Identity.Mongo</Product>
