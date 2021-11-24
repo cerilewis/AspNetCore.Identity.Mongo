@@ -71,13 +71,21 @@ namespace AspNetCore.Identity.Mongo
         }
 
         public static IdentityBuilder AddIdentityMongoDbProvider<TUser, TRole, TKey>(this IServiceCollection services,
-            Action<IdentityOptions> setupIdentityAction, Action<MongoIdentityOptions> setupDatabaseAction)
+            Action<IdentityOptions> setupIdentityAction, Action<MongoIdentityOptions> setupDatabaseAction, IdentityErrorDescriber identityErrorDescriber = null)
             where TKey : IEquatable<TKey>
             where TUser : MongoUser<TKey>
             where TRole : MongoRole<TKey>
         {
             var dbOptions = new MongoIdentityOptions();
             setupDatabaseAction(dbOptions);
+
+            var migrationCollection = MongoUtil.FromConnectionString<MigrationHistory>(dbOptions, dbOptions.MigrationCollection);
+            var migrationUserCollection = MongoUtil.FromConnectionString<MigrationMongoUser<TKey>>(dbOptions, dbOptions.UsersCollection);
+            var userCollection = MongoUtil.FromConnectionString<TUser>(dbOptions, dbOptions.UsersCollection);
+            var roleCollection = MongoUtil.FromConnectionString<TRole>(dbOptions, dbOptions.RolesCollection);
+
+            // apply migrations before identity services resolved
+            Migrator.Apply<MigrationMongoUser<TKey>, TRole, TKey>(migrationCollection, migrationUserCollection, roleCollection);
 
             var builder = services.AddIdentity<TUser, TRole>(setupIdentityAction ?? (x => { }));
 
@@ -87,35 +95,20 @@ namespace AspNetCore.Identity.Mongo
             .AddRoleManager<RoleManager<TRole>>()
             .AddDefaultTokenProviders();
 
-            var migrationCollection = MongoUtil.FromConnectionString<MigrationHistory>(dbOptions, dbOptions.MigrationCollection);
-
-            Task.WaitAny(Migrator.Apply(migrationCollection));
-
-            var userCollection = MongoUtil.FromConnectionString<TUser>(dbOptions, dbOptions.UsersCollection);
-            var roleCollection = MongoUtil.FromConnectionString<TRole>(dbOptions, dbOptions.RolesCollection);
-
             services.AddSingleton(x => userCollection);
             services.AddSingleton(x => roleCollection);
 
             // register custom ObjectId TypeConverter
             if (typeof(TKey) == typeof(ObjectId))
             {
-                RegisterTypeConverter<ObjectId, ObjectIdConverter>();
+                TypeConverterResolver.RegisterTypeConverter<ObjectId, ObjectIdConverter>();
             }
 
             // Identity Services
-            services.AddTransient<IRoleStore<TRole>>(x => new RoleStore<TRole, TKey>(roleCollection));
-            services.AddTransient<IUserStore<TUser>>(x => new UserStore<TUser, TRole, TKey>(userCollection, new RoleStore<TRole, TKey>(roleCollection), x.GetService<ILookupNormalizer>()));
+            services.AddTransient<IRoleStore<TRole>>(x => new RoleStore<TRole, TKey>(roleCollection, identityErrorDescriber));
+            services.AddTransient<IUserStore<TUser>>(x => new UserStore<TUser, TRole, TKey>(userCollection, roleCollection, identityErrorDescriber));
 
             return builder;
-        }
-
-        private static void RegisterTypeConverter<T, TC>() where TC : TypeConverter
-        {
-            Attribute[] attr = new Attribute[1];
-            TypeConverterAttribute vConv = new TypeConverterAttribute(typeof(TC));
-            attr[0] = vConv;
-            TypeDescriptor.AddAttributes(typeof(T), attr);
         }
     }
 }
